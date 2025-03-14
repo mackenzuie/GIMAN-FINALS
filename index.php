@@ -1,6 +1,41 @@
-<?php 
+<?php
 session_start();
-include 'includes/header.php'; 
+require 'db_connect.php';
+
+if (isset($_SESSION['admin_logged_in'])) {
+    header("Location: dashboard.php");
+    exit();
+}
+
+$error_message = "";
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username']);
+    $password = trim($_POST['password']);
+
+    $stmt = $conn->prepare("SELECT id, username, password FROM staff WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        $stmt->bind_result($id, $db_username, $db_password);
+        $stmt->fetch();
+
+        if (password_verify($password, $db_password)) {
+            $_SESSION['admin_logged_in'] = true;
+            $_SESSION['admin_id'] = $id;
+            $_SESSION['admin_username'] = $db_username;
+            header("Location: dashboard.php");
+            exit();
+        } else {
+            $error_message = "Invalid username or password.";
+        }
+    } else {
+        $error_message = "Invalid username or password.";
+    }
+    $stmt->close();
+}
 ?>
 
 <!DOCTYPE html>
@@ -8,103 +43,26 @@ include 'includes/header.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MARV SHAWARMA - Admin Dashboard</title>
-    <style>
-     
-        * {
-            box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            background-color: #f4f4f4;
-        }
-
-        .header {
-            background-color: #ffcc00;
-            color: #333;
-            padding: 25px;
-            text-align: center;
-            font-size: 30px;
-            font-weight: bold;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 50px auto;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-            text-align: center;
-        }
-
-        .welcome-section h1 {
-            font-size: 34px;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        .welcome-section p {
-            font-size: 18px;
-            color: #555;
-            margin-bottom: 25px;
-        }
-
-        .quick-links h2 {
-            font-size: 22px;
-            color: #444;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-        }
-
-        .link-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
-        }
-        .link-buttons a {
-            text-decoration: none;
-            background: #ff6600;
-            color: white;
-            padding: 14px 24px;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: bold;
-            transition: 0.3s ease-in-out;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .link-buttons a:hover {
-            background: #cc5500;
-            transform: translateY(-3px);
-        }
-    </style>
+    <title>Login - Sales Management System</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
+    <div class="login-container">
+        <h2>Admin Login</h2>
+        
+        <?php if (!empty($error_message)): ?>
+            <p class="error"><?php echo $error_message; ?></p>
+        <?php endif; ?>
+        
+        <form method="POST">
+            <label>Username:</label>
+            <input type="text" name="username" required>
 
-    <div class="header">DESIGN WELL DITO hahadhaAHAHSASAHA ANAGSAN MO ILALALAGAY PLS</div>
+            <label>Password:</label>
+            <input type="password" name="password" required>
 
-    <div class="container">
-        <div class="welcome-section">
-            <h1>Welcome, Admin! DAPAT NAME, OR ANO?</h1>
-            <p>Stay in control. Manage staff, products, and sales with ease.</p>
-        </div>
-
-        <div class="quick-links">
-            <h2>Quick Access</h2>
-            <div class="link-buttons">
-                <a href="dashboard.php">Dashboard</a>
-                <a href="staff_management.php">Staff</a>
-                <a href="inventory.php">Inventory</a>
-                <a href="sales.php">Sales</a>
-            </div>
-        </div>
+            <button type="submit">Login</button>
+        </form>
     </div>
-
 </body>
 </html>
-
-<?php include 'includes/footer.php'; ?>
